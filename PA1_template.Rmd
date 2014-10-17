@@ -1,14 +1,14 @@
 ---
 title: "Peer Assessment 1"
 author: "James Bullis"
-date: "Sunday, October 12, 2014"
+date: "Saturday, October 18, 2014"
 output: html_document
 ---
 
 This report summarizes activtity in steps as measures by personal activity monitoring devices.  It was obtained at (https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip).  The data was collected at 5 minute intervals during the months of November and December 2012. 
 
 ###Loading and Preprocessing Data
-The packages plyr and ggplot2 will be used for preoprocessing and data analysis.  Once the data has been imported, dates were converted into Date format.  An additional factor is created that specifies whether a day is a weekend or weekday. 
+The packages plyr and ggplot2 will be used for preoprocessing and data analysis.  Once the data has been imported, dates were converted into Date format.  An additional factor was created that specifies whether a day is a weekend or weekday. 
 
 ```{r}
 library(ggplot2)
@@ -26,7 +26,7 @@ activity$daytype[!weekdays(activity$date) %in% c('Saturday', 'Sunday')]<-"weekda
 
 ###What is the mean total number of steps taken per day?
 
-For this section, NA values are removed for analysis.  The mean number of steps is specfied in the summary below.
+For this section, NA values are removed for analysis.  The mean number of steps is specfied in the summary below.  Following is a histogram for the sum of the number of steps taken for each day.
 
 ```{r}
 activity.clean <-subset(activity, activity$steps >=0)
@@ -37,12 +37,14 @@ summary(activity.sums)
 sums.df <-ldply(activity.sums)
 names(sums.df) <-c("date", "steps")
 sums.df$date <- as.Date(sums.df$date)
-sums.plot <-ggplot(sums.df, aes(x=date, y=steps)) + geom_line()
+sums.plot <-ggplot(sums.df, aes(x=date, y=steps)) + geom_bar(stat="identity")
 sums.plot
 
 ```
 
 ###What is the average daily pattern?
+To measure daily pattern, a new dataframe was created that calculated the mean value for each interval across the days and plotted below.
+
 ```{r}
 
 daily.pattern <-tapply(activity.clean$steps, list(activity.clean$interval), mean)
@@ -54,9 +56,9 @@ names(which(daily.pattern ==(max(daily.pattern))))
 ###Imputing Missing Values
 Missing values may introduce bias into the data.  To test this, a new dataset was created.  NA's from the original data were replaced with the average value of that interval.  The specific value was dependent upon whether the day was a weekend or weekday, as the patterns of activity were different between the two (see "Are there differences in activty patterns between weekdays and weekends?").
 
-In the code below, the first section separates the data into weekday and weekend days.  Next is a summary of the NA values in the original data.  The NAs are then imputed as described above and the summary presented following.  Comparing the values to the original show little changes in the mean and median.  This is to be expected as the mean was for the missing values.
+In the code below, the first section separates the data into weekday and weekend days and computes the means for each interval, which is used as a lookup table for imputing the missing values.  Summaries for the imputed data and the original data are presented below.  Comparing the values to the original show little changes in the mean and median.  This is to be expected as the mean was for the missing values.
 
-The plot below shows the daily sum of steps for the imputed data.  The shape of the graph is not much different than the original graph.  Of particular note are two days:  October 2 and November 15.  Both of these days have little activity, but imputing value had little change.  This is because these days contain many zeros.  Some possible explanations for the zeros are that the band was removed for most fo the day, or the individual was sick and did not move.  As no explanation was provided, it is impossible to determine for sure.
+The plot below shows the daily sum of steps for the imputed data.  The shape of the graph is not much different than the original graph.  Of particular note are two days:  October 2 and November 15.  Both of these days have little activity, but imputing value had little change.  This is because these days contain many zeros.  Some possible explanations for the zeros are that the band was removed for most of the day, or the individual was sick and did not move.  As no explanation was provided, it is impossible to determine for sure.
 
 
 ```{r}
@@ -96,12 +98,13 @@ summary(activity.sums)
 sums.df.ext <-ldply(activity.sums.ext)
 names(sums.df.ext) <-c("date", "steps")
 sums.df.ext$date <- as.Date(sums.df.ext$date)
-sums.plot.int <-ggplot(sums.df.ext, aes(x=date, y=steps)) + geom_line()
+sums.plot.int <-ggplot(sums.df.ext, aes(x=date, y=steps)) + geom_bar(stat="identity")
 sums.plot.int
 
 ```
 
 ###Are there differences in activty patterns between weekdays and weekends?
+To test whether weekend activity is different than weekdays, the orginal daily pattern computed above was divided into weekend and weekday data frames and plotted below.
 
 ```{r}
 
