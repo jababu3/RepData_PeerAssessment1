@@ -43,7 +43,7 @@ sums.plot
 ```
 
 ###What is the average daily pattern?
-To measure daily pattern, a new dataframe was created that calculated the mean value for each interval across the days and plotted below.
+To measure daily pattern, a new dataframe was created that calculated the mean value for each interval across the days and plotted below.  Following the graph, the interval containing the maximum number of steps is printed.
 
 ```{r}
 
@@ -89,10 +89,10 @@ for (i in 1:length(activity.int$steps))  {
 
 
 activity.sums.ext <-tapply(activity.int$steps, list(activity.int$date), sum)
-print("Summary activity for interpolated values")
+#Summary activity for interpolated values
 summary(activity.sums.ext)
 
-print("Original values are below for comparison")
+#Original values are below for comparison
 summary(activity.sums)
 
 sums.df.ext <-ldply(activity.sums.ext)
