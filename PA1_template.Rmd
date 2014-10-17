@@ -1,25 +1,128 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Peer Assessment 1"
+author: "James Bullis"
+date: "Sunday, October 12, 2014"
+output: html_document
 ---
 
+This report summarizes activtity in steps as measures by personal activity monitoring devices.  It was obtained at (https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip).  The data was collected at 5 minute intervals during the months of November and December 2012. 
 
-## Loading and preprocessing the data
+###Loading and Preprocessing Data
+The packages plyr and ggplot2 will be used for preoprocessing and data analysis.  Once the data has been imported, dates were converted into Date format.  An additional factor is created that specifies whether a day is a weekend or weekday. 
+
+```{r}
+library(ggplot2)
+library(plyr)
+
+WD <-getwd()
+setwd(paste(WD, "/activity", sep=""))
+activity <- read.csv("activity.csv", header=TRUE)
+activity$date <-as.Date(activity$date)
+day <-weekdays(activity$date)
+activity$daytype <-"weekend"
+activity$daytype[!weekdays(activity$date) %in% c('Saturday', 'Sunday')]<-"weekday"
+
+```
+
+###What is the mean total number of steps taken per day?
+
+For this section, NA values are removed for analysis.  The mean number of steps is specfied in the summary below.
+
+```{r}
+activity.clean <-subset(activity, activity$steps >=0)
+activity.clean <-droplevels(activity.clean)
+activity.sums <-tapply(activity.clean$steps, list(activity.clean$date), sum)
+summary(activity.sums)
+
+sums.df <-ldply(activity.sums)
+names(sums.df) <-c("date", "steps")
+sums.df$date <- as.Date(sums.df$date)
+sums.plot <-ggplot(sums.df, aes(x=date, y=steps)) + geom_line()
+sums.plot
+
+```
+
+###What is the average daily pattern?
+```{r}
+
+daily.pattern <-tapply(activity.clean$steps, list(activity.clean$interval), mean)
+plot(x=names(daily.pattern), y=daily.pattern, main="Daily Pattern", xlab="Time", ylab="Mean Steps", type="l")
+names(which(daily.pattern ==(max(daily.pattern))))
+
+```
+
+###Imputing Missing Values
+Missing values may introduce bias into the data.  To test this, a new dataset was created.  NA's from the original data were replaced with the average value of that interval.  The specific value was dependent upon whether the day was a weekend or weekday, as the patterns of activity were different between the two (see "Are there differences in activty patterns between weekdays and weekends?").
+
+In the code below, the first section separates the data into weekday and weekend days.  Next is a summary of the NA values in the original data.  The NAs are then imputed as described above and the summary presented following.  Comparing the values to the original show little changes in the mean and median.  This is to be expected as the mean was for the missing values.
+
+The plot below shows the daily sum of steps for the imputed data.  The shape of the graph is not much different than the original graph.  Of particular note are two days:  October 2 and November 15.  Both of these days have little activity, but imputing value had little change.  This is because these days contain many zeros.  Some possible explanations for the zeros are that the band was removed for most fo the day, or the individual was sick and did not move.  As no explanation was provided, it is impossible to determine for sure.
 
 
+```{r}
 
-## What is mean total number of steps taken per day?
+pattern.weekend <-tapply(activity.clean$steps[activity.clean$daytype=="weekend"], list(activity.clean$interval[activity.clean$daytype=="weekend"]), mean)
+pattern.weekend<-cbind(as.numeric(names(pattern.weekend)), as.numeric(pattern.weekend))
+
+pattern.weekday <-tapply(activity.clean$steps[activity.clean$daytype=="weekday"], list(activity.clean$interval[activity.clean$daytype=="weekday"]), mean)
+pattern.weekday<-cbind(as.numeric(names(pattern.weekday)), as.numeric(pattern.weekday))
+
+# determining the number of NAs
+Nans.no <-length(activity$interval) - length(activity.clean$interval)
+Nans.no
+
+#inputing NA values
+activity.int <-activity
+for (i in 1:length(activity.int$steps))  {
+  
+  if (is.na(activity.int$steps[i]))  {
+    if (activity.int$daytype[i]=="weekday")  {
+      activity.int$steps[i] = pattern.weekday[match(activity.int$interval[i],pattern.weekday),2]
+    }
+    else if(activity.int$daytype[i]=="weekend")  {
+      activity.int$steps[i] = pattern.weekend[match(activity.int$interval[i],pattern.weekend),2]       
+    }
+  } 
+}
 
 
+activity.sums.ext <-tapply(activity.int$steps, list(activity.int$date), sum)
+print("Summary activity for interpolated values")
+summary(activity.sums.ext)
 
-## What is the average daily activity pattern?
+print("Original values are below for comparison")
+summary(activity.sums)
+
+sums.df.ext <-ldply(activity.sums.ext)
+names(sums.df.ext) <-c("date", "steps")
+sums.df.ext$date <- as.Date(sums.df.ext$date)
+sums.plot.int <-ggplot(sums.df.ext, aes(x=date, y=steps)) + geom_line()
+sums.plot.int
+
+```
+
+###Are there differences in activty patterns between weekdays and weekends?
+
+```{r}
+
+patterns.df <-data.frame(pattern.weekday)
+patterns.df$daytype <-"weekday"
+names(patterns.df)[1]<-"interval"
+names(patterns.df)[2] <-"steps"
+
+patterns.wknd.df <-data.frame(pattern.weekend)
+names(patterns.wknd.df)[1]<-"interval"
+names(patterns.wknd.df)[2] <-"steps"
+patterns.wknd.df$daytype <-"weekend"
+
+patterns <-rbind(patterns.df, patterns.wknd.df)
+patterns$daytype <-as.factor(patterns$daytype)
+patterns$interval<-as.numeric(patterns$interval)
+
+pp <-ggplot(patterns, aes(x=interval, y=steps)) + geom_line(aes(group=daytype))
+pp <-pp + facet_grid(.~daytype)
+pp
+
+```
 
 
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
